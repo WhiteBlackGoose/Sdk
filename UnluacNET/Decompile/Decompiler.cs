@@ -758,7 +758,7 @@ namespace Elskom.Generic.Libs.UnluacNET
                         else if (hasTail)
                         {
                             var endOp = this.Code.Op(cond.End - 2);
-                            var isEndCondJump = endOp == Op.EQ || endOp == Op.LE || endOp == Op.LT || endOp == Op.TEST || endOp == Op.TESTSET;
+                            var isEndCondJump = endOp is Op.EQ or Op.LE or Op.LT or Op.TEST or Op.TESTSET;
                             if (tail > cond.End || (tail == cond.End && !isEndCondJump))
                             {
                                 var op = this.Code.Op(tail - 1);
@@ -1223,7 +1223,7 @@ namespace Elskom.Generic.Libs.UnluacNET
 
                 case Op.CALL:
                 {
-                    var multiple = C >= 3 || C == 0;
+                    var multiple = C is >= 3 or 0;
                     if (B == 0)
                     {
                         B = this.registers - A;
@@ -1615,7 +1615,7 @@ namespace Elskom.Generic.Libs.UnluacNET
                 }
                 else
                 {
-                    if (!(branch is TestSetNode))
+                    if (branch is not TestSetNode)
                     {
                         stack.Push(branch);
                         branch = this.PopCondition(stack);

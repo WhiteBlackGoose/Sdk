@@ -26,6 +26,6 @@ namespace Elskom.Generic.Libs.UnluacNET
             => LFunctionType.TYPE51;
 
         public override bool IsBreakableLoopEnd(Op op)
-            => op == Op.JMP || op == Op.FORLOOP;
+            => op is Op.JMP or Op.FORLOOP;
     }
 }

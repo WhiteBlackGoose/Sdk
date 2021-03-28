@@ -15,7 +15,7 @@ namespace Elskom.Generic.Libs.UnluacNET
         {
             this.Size = size;
             this.Integral = integral;
-            if (!(size == 4 || size == 8))
+            if (size is not (4 or 8))
             {
                 throw new InvalidOperationException("The input chunk has an unsupported Lua number size: " + size);
             }

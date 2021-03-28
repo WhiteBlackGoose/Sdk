@@ -9,37 +9,27 @@ namespace Elskom.Generic.Libs
     using System.Diagnostics;
     using System.Globalization;
     using System.IO;
+    using System.Reflection;
     using System.Runtime.InteropServices;
+    using System.Text;
+    using Microsoft.Windows.Sdk;
 
-    /// <summary>
-    /// A class that can generate mini-dumps.
-    /// </summary>
-    public static class MiniDump
+    internal static class MiniDump
     {
-        /// <summary>
-        /// Occurs when a mini-dump is generated or fails.
-        /// </summary>
-        public static event EventHandler<MessageEventArgs> DumpMessage;
-
         internal static void ExceptionEventHandlerCode(Exception e, bool threadException)
         {
-            var exceptionData = $"{e.GetType()}: {e.Message}{Environment.NewLine}{e.StackTrace}{Environment.NewLine}";
-            PrintInnerExceptions(e, ref exceptionData);
+            var exceptionData = PrintExceptions(e);
 
             // do not dump or close if in a debugger.
             if (!Debugger.IsAttached)
             {
-                ForceClosure.ForceClose = true;
+                MiniDumpAttribute.ForceClose = true;
 
                 // if this is not Windows, MiniDumpToFile(), which calls MiniDumpWriteDump() in dbghelp.dll
                 // cannot be used as it does not exist. I need to figure out mini-dumping for
                 // these platforms manually. In that case I guess it does not matter much anyway
                 // with the world of debugging and running in a IDE.
-#if NET5_0_OR_GREATER
-                if (OperatingSystem.IsWindows())
-#else
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
                 {
                     if (string.IsNullOrEmpty(MiniDumpAttribute.CurrentInstance.DumpLogFileName))
                     {
@@ -53,46 +43,66 @@ namespace Elskom.Generic.Libs
 
                     File.WriteAllText(MiniDumpAttribute.CurrentInstance.DumpLogFileName, exceptionData);
                     MiniDumpToFile(MiniDumpAttribute.CurrentInstance.DumpFileName, MiniDumpAttribute.CurrentInstance.DumpType);
-                    DumpMessage?.Invoke(typeof(MiniDump), new MessageEventArgs(string.Format(CultureInfo.InvariantCulture, MiniDumpAttribute.CurrentInstance.Text, MiniDumpAttribute.CurrentInstance.DumpLogFileName), threadException ? MiniDumpAttribute.CurrentInstance.ThreadExceptionTitle : MiniDumpAttribute.CurrentInstance.ExceptionTitle, ErrorLevel.Error));
+                    MiniDumpAttribute.InvokeDumpMessage(typeof(MiniDump), new MessageEventArgs(string.Format(CultureInfo.InvariantCulture, MiniDumpAttribute.CurrentInstance.Text, MiniDumpAttribute.CurrentInstance.DumpLogFileName), threadException ? MiniDumpAttribute.CurrentInstance.ThreadExceptionTitle : MiniDumpAttribute.CurrentInstance.ExceptionTitle, ErrorLevel.Error));
                 }
             }
         }
 
-        private static void MiniDumpToFile(string fileToDump, MinidumpTypes dumpType)
+        private static unsafe void MiniDumpToFile(string fileToDump, MINIDUMP_TYPE dumpType)
         {
             using var fsToDump = File.Open(fileToDump, FileMode.Create, FileAccess.ReadWrite, FileShare.Write);
-            using var thisProcess = Process.GetCurrentProcess();
             var mINIDUMP_EXCEPTION_INFORMATION = new MINIDUMP_EXCEPTION_INFORMATION
             {
                 ClientPointers = false,
-#if WITH_EXCEPTIONPOINTERS
-                ExceptionPointers = Marshal.GetExceptionPointers(),
-#else
-                ExceptionPointers = IntPtr.Zero,
-#endif
-                ThreadId = SafeNativeMethods.GetCurrentThreadId(),
+                ExceptionPointers = GetExceptionPointers(),
+                ThreadId = PInvoke.GetCurrentThreadId(),
             };
-            var error = SafeNativeMethods.MiniDumpWriteDump(
-                thisProcess.Handle,
-                thisProcess.Id,
+            var error = MiniDumpWriteDump(
+                PInvoke.GetCurrentProcess_SafeHandle(),
+                PInvoke.GetCurrentProcessId(),
                 fsToDump.SafeFileHandle,
                 dumpType,
-                ref mINIDUMP_EXCEPTION_INFORMATION,
-                IntPtr.Zero,
-                IntPtr.Zero);
+                mINIDUMP_EXCEPTION_INFORMATION,
+                default,
+                default);
             if (error > 0)
             {
-                DumpMessage?.Invoke(typeof(MiniDump), new MessageEventArgs($"Mini-dumping failed with Code: {error}", "Error!", ErrorLevel.Error));
+                MiniDumpAttribute.InvokeDumpMessage(typeof(MiniDump), new MessageEventArgs($"Mini-dumping failed with Code: {error}", "Error!", ErrorLevel.Error));
             }
         }
 
-        private static void PrintInnerExceptions(Exception exception, ref string result)
+        private static IntPtr GetExceptionPointers()
         {
-            if (exception.InnerException != null)
+            // because we target .NET Standard 2.0 we need to probe for
+            // Marshal.GetExceptionPointers using reflection then call
+            // it if it exists but return a null pointer if it does not exist.
+            var method = typeof(Marshal).GetMethod(
+                "GetExceptionPointers",
+                BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly,
+                null,
+                Type.EmptyTypes,
+                null);
+            return method != null ? (IntPtr)method.Invoke(null, null) : IntPtr.Zero;
+        }
+
+        private static unsafe int MiniDumpWriteDump(SafeHandle hProcess, uint processId, SafeHandle hFile, MINIDUMP_TYPE dumpType, MINIDUMP_EXCEPTION_INFORMATION? exceptionParam, IntPtr userStreamParam, IntPtr callackParam)
+        {
+            _ = PInvoke.MiniDumpWriteDump(hProcess, processId, hFile, dumpType, exceptionParam, userStreamParam, callackParam);
+            return Marshal.GetLastWin32Error();
+        }
+
+        private static string PrintExceptions(Exception exception)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"{exception.GetType()}: {exception.Message}{Environment.NewLine}{exception.StackTrace}");
+            var currException = exception.InnerException;
+            while (currException != null)
             {
-                result += $"{exception.InnerException.GetType()}: {exception.InnerException.Message}{Environment.NewLine}{exception.InnerException.StackTrace}{Environment.NewLine}";
-                PrintInnerExceptions(exception.InnerException, ref result);
+                sb.AppendLine($"{currException.GetType()}: {currException.Message}{Environment.NewLine}{currException.StackTrace}");
+                currException = currException.InnerException;
             }
+
+            return sb.ToString();
         }
     }
 }

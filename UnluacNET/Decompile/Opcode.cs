@@ -10,7 +10,7 @@ namespace Elskom.Generic.Libs.UnluacNET
         // TODO: Optimize method
         public static string CodePointToString(Op opcode, LInstruction code)
         {
-            var name = opcode.GetType().Name;
+            var name = typeof(Op).Name;
             return opcode switch
             {
                 // A

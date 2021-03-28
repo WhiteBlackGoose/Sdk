@@ -101,7 +101,7 @@ namespace Elskom.Generic.Libs
         }
 
         private static string ReplaceStr(string str1, string str2, string str3, StringComparison comp)
-#if !NETFRAMEWORK
+#if NETSTANDARD2_1
             => str1.Replace(str2, str3, comp);
 #else
         {

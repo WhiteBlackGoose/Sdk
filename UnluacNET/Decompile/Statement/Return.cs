@@ -5,9 +5,7 @@
 
 namespace Elskom.Generic.Libs.UnluacNET
 {
-#if !NETFRAMEWORK
     using System;
-#endif
     using System.Collections.Generic;
 
     public class Return : Statement
@@ -15,11 +13,7 @@ namespace Elskom.Generic.Libs.UnluacNET
         private readonly Expression[] values;
 
         public Return()
-#if NETFRAMEWORK
-            => this.values = new Expression[0];
-#else
             => this.values = Array.Empty<Expression>();
-#endif
 
         public Return(Expression value)
             => this.values = new Expression[1]

@@ -186,7 +186,7 @@ namespace Elskom.Generic.Libs
             }
 
             this.IV = HexToByte(ct.Substring(0, 16));
-#if !NETFRAMEWORK
+#if !NETSTANDARD2_0
             return Encoding.ASCII.GetString(this.DecryptCBC(HexToByte(ct.Substring(16)))).Replace("\0", string.Empty, StringComparison.Ordinal);
 #else
             return Encoding.ASCII.GetString(this.DecryptCBC(HexToByte(ct.Substring(16)))).Replace("\0", string.Empty);
@@ -230,7 +230,7 @@ namespace Elskom.Generic.Libs
                 throw new ArgumentNullException(nameof(ct));
             }
 
-#if !NETFRAMEWORK
+#if !NETSTANDARD2_0
             return Encoding.ASCII.GetString(this.Decrypt_ECB(HexToByte(ct))).Replace("\0", string.Empty, StringComparison.Ordinal);
 #else
             return Encoding.ASCII.GetString(this.Decrypt_ECB(HexToByte(ct))).Replace("\0", string.Empty);
@@ -510,15 +510,15 @@ namespace Elskom.Generic.Libs
         // converts a single hex character to it's decimal value
         private static byte GetHex(char x)
         {
-            if (x <= '9' && x >= '0')
+            if (x is <= '9' and >= '0')
             {
                 return (byte)(x - '0');
             }
-            else if (x <= 'z' && x >= 'a')
+            else if (x is <= 'z' and >= 'a')
             {
                 return (byte)(x - 'a' + 10);
             }
-            else if (x <= 'Z' && x >= 'A')
+            else if (x is <= 'Z' and >= 'A')
             {
                 return (byte)(x - 'A' + 10);
             }

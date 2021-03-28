@@ -21,10 +21,10 @@ namespace Newsmake
 
     internal static class Program
     {
-        [MiniDump(Text = "Please send a copy of {0} to https://github.com/Elskom/Sdk/issues by making an issue and attaching the log(s) and mini-dump(s).", DumpType = MinidumpTypes.ValidTypeFlags)]
+        [MiniDump(Text = "Please send a copy of {0} to https://github.com/Elskom/Sdk/issues by making an issue and attaching the log(s) and mini-dump(s).", DumpType = MINIDUMP_TYPE.MiniDumpValidTypeFlags)]
         internal static async Task<int> Main(string[] args)
         {
-            MiniDump.DumpMessage += MiniDump_DumpMessage;
+            MiniDumpAttribute.DumpMessage += MiniDump_DumpMessage;
             _ = Assembly.GetEntryAssembly().EntryPoint.GetCustomAttributes<MiniDumpAttribute>(false);
             GitInformation.ApplyAssemblyAttributes(typeof(Program).Assembly);
             var cmd = new RootCommand
@@ -577,8 +577,7 @@ namespace Newsmake
 
         private static Command WithHandler(this Command command, string name)
         {
-            var flags = BindingFlags.NonPublic | BindingFlags.Static;
-            var method = typeof(Program).GetMethod(name, flags);
+            var method = typeof(Program).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly);
             if (method == null)
             {
                 return command;

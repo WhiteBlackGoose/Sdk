@@ -87,7 +87,7 @@ namespace Elskom.Generic.Libs
             }
 
             // trap devenv if it is detected.
-#if !NETFRAMEWORK
+#if NETSTANDARD2_1
             localPath = localPath.Replace("devenv", "Els_kom", StringComparison.OrdinalIgnoreCase);
 #else
             localPath = localPath.Replace("devenv", "Els_kom");

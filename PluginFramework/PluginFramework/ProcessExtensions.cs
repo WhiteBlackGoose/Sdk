@@ -7,6 +7,7 @@ namespace Elskom.Generic.Libs
 {
     using System;
     using System.Diagnostics;
+    using System.Text;
 
     /// <summary>
     /// A extension class for extensions to <see cref="Process"/>.
@@ -71,17 +72,26 @@ namespace Elskom.Generic.Libs
                 throw new ArgumentNullException(nameof(proc));
             }
 
+            var ret = new StringBuilder();
             Executing = true;
             _ = proc.Start();
             Executing = false;
-            var ret = proc.StartInfo.RedirectStandardError ? proc.StandardError.ReadToEnd() : string.Empty;
-            ret += proc.StartInfo.RedirectStandardOutput ? proc.StandardOutput.ReadToEnd() : string.Empty;
+            if (proc.StartInfo.RedirectStandardOutput)
+            {
+                _ = ret.Append(proc.StandardOutput.ReadToEnd());
+            }
+
+            if (proc.StartInfo.RedirectStandardError)
+            {
+                _ = ret.Append(proc.StandardError.ReadToEnd());
+            }
+
             if (WaitForProcessExit)
             {
                 proc.WaitForExit();
             }
 
-            return ret;
+            return ret.ToString();
         }
     }
 }

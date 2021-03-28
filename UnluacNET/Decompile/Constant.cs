@@ -176,7 +176,7 @@ namespace Elskom.Generic.Libs.UnluacNET
                         {
                             newLines++;
                         }
-                        else if ((c <= 31 && c != '\t') || c >= 127)
+                        else if (c is (<= (char)31 and not '\t') or >= (char)127)
                         {
                             unprinttable++;
                         }
@@ -188,7 +188,7 @@ namespace Elskom.Generic.Libs.UnluacNET
                         var pipe = 0;
                         var pipeString = new StringBuilder();
                         pipeString.Append("]]");
-#if !NETFRAMEWORK && !NETCOREAPP2_0
+#if !NETSTANDARD2_0
                         while (this.m_string.Contains(pipeString.ToString(), StringComparison.InvariantCulture))
 #else
                         while (this.m_string.Contains(pipeString.ToString()))
@@ -235,10 +235,10 @@ namespace Elskom.Generic.Libs.UnluacNET
                         };
                         foreach (var c in this.m_string)
                         {
-                            if (c <= 31 || c >= 127)
+                            if (c is <= (char)31 or >= (char)127)
                             {
                                 var cx = (int)c;
-                                if (cx >= 7 && cx <= 13)
+                                if (cx is >= 7 and <= 13)
                                 {
                                     output.Print(chars[cx - 7]);
                                 }

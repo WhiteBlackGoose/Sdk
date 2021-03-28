@@ -36,9 +36,22 @@ namespace Elskom.Generic.Libs
         }
 
         /// <summary>
+        /// Occurs when a mini-dump is generated or fails.
+        /// </summary>
+        public static event EventHandler<MessageEventArgs> DumpMessage;
+
+        /// <summary>
         /// Gets the current instance of this attribute.
         /// </summary>
         public static MiniDumpAttribute CurrentInstance { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the application should force close.
+        /// <para>Lets the program know that it needs to close even if it is
+        /// not wanted because a crash dump was created by this library and we
+        /// do not want the system itself to produce a second one.</para>
+        /// </summary>
+        public static bool ForceClose { get; internal set; }
 
         /// <summary>
         /// Gets or sets the Exception message text.
@@ -48,7 +61,7 @@ namespace Elskom.Generic.Libs
         /// <summary>
         /// Gets or sets the mini-dump type.
         /// </summary>
-        public MinidumpTypes DumpType { get; set; }
+        public MINIDUMP_TYPE DumpType { get; set; }
 
         /// <summary>
         /// Gets or sets the title of the unhandled exception messagebox.
@@ -81,6 +94,9 @@ namespace Elskom.Generic.Libs
         /// <param name="threadException">Whether the exception is a thread exception or not.</param>
         public static void DumpException(Exception exception, bool threadException)
             => MiniDump.ExceptionEventHandlerCode(exception, threadException);
+
+        internal static void InvokeDumpMessage(object sender, MessageEventArgs e)
+            => DumpMessage?.Invoke(sender, e);
 
         private static void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
             => DumpException((Exception)args.ExceptionObject, false);
